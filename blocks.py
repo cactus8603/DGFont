@@ -194,4 +194,19 @@ class AdaIN2d(nn.Module):
             self.register_buffer('running_var', torch.ones(num_features))
         else:
             self.register_buffer('running_mean', None)
-            self
+            self.register_buffer('running_var', None)
+
+    def forward(self, x):
+        assert self.weight is not None and self.bias is not None, "AdaIN params are None"
+        N, C, H, W = x.size()
+        running_mean = self.running_mean.repeat(N)
+        running_var = self.running_var.repeat(N)
+        x_ = x.contiguous().view(1, N*C, H*W)
+        normed = F.batch_norm(x_, running_mean, running_var, 
+                              self.weight, self.bias, 
+                              True, self.momentum, self.eps)
+        return normed.view(N, C, H, W)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(num_featrure=' + str(self.num_features) + ')'
+        
